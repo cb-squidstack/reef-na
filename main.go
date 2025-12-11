@@ -10,16 +10,10 @@ import (
 	"github.com/gorilla/mux"
 
 	"reef-na/internal/featureflags"
+	"reef-na/internal/feeds"
 	mw "reef-na/internal/http/middleware"
 	"reef-na/internal/logger"
 )
-
-// WeatherData represents weather information
-type WeatherData struct {
-	Summary      string  `json:"summary"`
-	TemperatureC float64 `json:"temperatureC"`
-	FeelsLikeC   float64 `json:"feelsLikeC,omitempty"`
-}
 
 // NewsItem represents a single news article
 type NewsItem struct {
@@ -32,10 +26,10 @@ type NewsItem struct {
 
 // RegionalFeedResponse represents the response structure
 type RegionalFeedResponse struct {
-	Region  string       `json:"region"`
-	Country string       `json:"country"`
-	Weather *WeatherData `json:"weather,omitempty"`
-	News    []NewsItem   `json:"news,omitempty"`
+	Region  string              `json:"region"`
+	Country string              `json:"country"`
+	Weather *feeds.WeatherData  `json:"weather,omitempty"`
+	News    []NewsItem          `json:"news,omitempty"`
 }
 
 func main() {
@@ -122,11 +116,16 @@ func main() {
 
 		logger.Infof("serving NA regional feeds for country: %s", country)
 
-		// Stub weather data for North America
-		weather := &WeatherData{
-			Summary:      "Sunny with clear skies",
-			TemperatureC: 22.5,
-			FeelsLikeC:   24.0,
+		// Fetch real weather data from Open-Meteo API
+		weather, err := feeds.FetchWeather(country)
+		if err != nil {
+			logger.Warnf("failed to fetch weather for %s: %v (using fallback)", country, err)
+			// Fallback to stub data if API fails
+			weather = &feeds.WeatherData{
+				Summary:      "Weather data unavailable",
+				TemperatureC: 0,
+				FeelsLikeC:   0,
+			}
 		}
 
 		// Stub news data for North America
